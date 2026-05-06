@@ -91,6 +91,10 @@ void setup() {
   Serial.begin(115200);
   
   srv1.attach(pwm1);
+<<<<<<< HEAD
+=======
+
+>>>>>>> ed5497da11388fd8fe0c3e907c860984dae35c6d
   srv2.attach(pwm2);
 
   srv1.write(0);
