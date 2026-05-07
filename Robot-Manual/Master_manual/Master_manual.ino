@@ -68,7 +68,6 @@ void loop() {
   if (Ps3.isConnected()) {
     if (Ps3.data.button.r1){
       // R1 mode functions
-      stickGriper();
       boxGriper();
       boxLifter();
       readInputsR1();
@@ -79,16 +78,17 @@ void loop() {
       sendToSlave(MOTOR_B, (int)currentM[2],(int)currentM[3]);
       sendToSlave(GRIPER_F, gripState, pg36State);
       sendToSlave(LIFTER, lift);
-      sendToSlave(STICK, posisi);
 
     } else{
       // Normal mode functions
+      stickGriper();
       readInputs();
       updateMotorSpeeds();
 
       // Sending to slaves
       sendToSlave(MOTOR_F, (int)currentM[0],(int)currentM[1]);
       sendToSlave(MOTOR_B, (int)currentM[2],(int)currentM[3]);
+      sendToSlave(STICK, posisi);
     }
   }
 }
@@ -182,10 +182,14 @@ inline void boxGriper(){
 
 // Box lifter (R1)
 inline void boxLifter(){
-  if (Ps3.data.button.l1){
+  if (Ps3.data.button.triangle){
     lift = 1;
-  } else if (Ps3.data.button.l2){
+  } else if (Ps3.data.button.square){
     lift = 2;
+  } else if (Ps3.data.button.cross){
+    lift = 3;
+  } else if (Ps3.data.button.r1){
+    lift = 4;
   } else {
     lift = 0;
   }
