@@ -17,6 +17,10 @@ int rotation = 0;
 float full_angle = 0.0;
 bool first_condition = true;
 float final_angle = 0;
+int com = 0;
+int max_val = 60;
+int min_val = 58;
+
 
 void setup() {
   // put your setup code here, to run once:
@@ -40,27 +44,30 @@ void setup() {
 void loop() {
   // put your main code here, to run repeatedly:
   slave.poll();
-  int com = (int16_t)data[0];
-
-  if (com == 1){
-    analogWrite(rpwm, 50);
-    analogWrite(lpwm, 0);
-  } else if (com == 2){
-    analogWrite(rpwm, 0);
-    analogWrite(lpwm, 50);
-  } else {
-    analogWrite(rpwm, 0);
-    analogWrite(lpwm, 0);
-  }
+  com = (int16_t)data[0];
 
   final_angle = ASread();
   Serial.print("Angle: ");
   Serial.println(final_angle);
 
-  if ((final_angle > 360)||(final_angle < -360)){
-    analogWrite(rpwm, 0);
-    analogWrite(lpwm, 0);
-  }
+  lifter(0, (min_val + 300), (max_val + 300));
+  lifter(1, (min_val + 120), (max_val + 120));
+  lifter(2, min_val, max_val);
+}
+  
+void lifter(int id, float max, float min){
+  if (com == id){
+    if (final_angle < min){
+      analogWrite(rpwm, 50);
+      analogWrite(lpwm, 0);
+    } else if (final_angle > max){
+      analogWrite(rpwm, 0);
+      analogWrite(lpwm, 50);
+    } else {
+      analogWrite(rpwm, 0);
+      analogWrite(lpwm, 0);
+    }
+  }    
 }
 
 float ASread(){
