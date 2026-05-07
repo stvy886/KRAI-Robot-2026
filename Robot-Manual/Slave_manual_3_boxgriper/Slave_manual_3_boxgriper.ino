@@ -19,8 +19,12 @@ const int pwmMotor2 = 6;
 const int pinMotor1 = 2;
 const int pinMotor2 = 3;
 
+volatile long countEnc = 0;
+
 int data = 0;
 int motorData = 0;
+int max = -5;
+int min = -900;
 
 void setup() {
   // put your setup code here, to run once:
@@ -33,21 +37,26 @@ void setup() {
   srv1.write(180);
   srv2.write(0);
 
-  pinMode(pinMotor1, OUTPUT);
-  pinMode(pinMotor2, OUTPUT);
+  pinMode(pinMotor1, INPUT_PULLUP);
+  pinMode(pinMotor2, INPUT_PULLUP);
   pinMode(pwmMotor1, OUTPUT);
   pinMode(pwmMotor2, OUTPUT);
 
-  digitalWrite(pinMotor1, LOW);
-  digitalWrite(pinMotor2, LOW);
   analogWrite(pwmMotor1, 0);
   analogWrite(pwmMotor2, 0);
   
+  attachInterrupt(digitalPinToInterrupt(pinMotor1), readEnc, RISING);
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
   slave.poll(au16data, 2);
+
+  interrupts();
+  Serial.print("Encoder: ");
+  Serial.println(countEnc);
+  Serial.print("Data: ");
+  Serial.println(motorData);
 
   data = (int16_t)au16data[0];
   motorData = (int16_t)au16data[1];
@@ -70,22 +79,52 @@ void loop() {
   }
   
   //MOTOR
-  if (motorData == 3) {
-    digitalWrite(pinMotor1, HIGH);
-    digitalWrite(pinMotor2, LOW);
-    analogWrite(pwmMotor1, 175);
-    analogWrite(pwmMotor2, 0);
-  }
-  else if (motorData == 2) {
-    digitalWrite(pinMotor1, LOW);
-    digitalWrite(pinMotor2, HIGH);
-    analogWrite(pwmMotor1, 0);
-    analogWrite(pwmMotor2, 175);
-  }
+  slider(countEnc, max, min);
+}
+
+void slider(int enc, int max, int min) {
+  if (enc > max) {
+    if (motorData == 2) {
+      analogWrite(pwmMotor1, 0);
+      analogWrite(pwmMotor2, 85);
+    }
+    else {
+      analogWrite(pwmMotor1, 0);
+      analogWrite(pwmMotor2, 0);
+    }
+  } 
+
+  else if (enc < min) {
+    if (motorData == 3) {
+      analogWrite(pwmMotor1, 85);
+      analogWrite(pwmMotor2, 0);
+    } 
+    else {
+      analogWrite(pwmMotor1, 0);
+      analogWrite(pwmMotor2, 0);
+    }
+  } 
+
   else {
-    digitalWrite(pinMotor1, LOW);
-    digitalWrite(pinMotor2, LOW);
-    analogWrite(pwmMotor1, 0);
-    analogWrite(pwmMotor2, 0);
+    if (motorData == 3) {
+      analogWrite(pwmMotor1, 175);
+      analogWrite(pwmMotor2, 0);
+    } 
+    else if (motorData == 2) {
+      analogWrite(pwmMotor1, 0);
+      analogWrite(pwmMotor2, 175);
+    } 
+    else {
+      analogWrite(pwmMotor1, 0);
+      analogWrite(pwmMotor2, 0);
+    }
+  }
+}
+
+void readEnc() {
+  if (digitalRead(pinMotor2)) {
+    countEnc++;
+  } else {
+    countEnc--;
   }
 }
