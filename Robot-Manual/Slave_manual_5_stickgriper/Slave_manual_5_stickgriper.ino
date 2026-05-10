@@ -5,7 +5,7 @@ Servo srv1;
 Servo srv2;
 
 const int pinSensor = 2;
-volatile unsigned long pulses = 0;
+volatile long pulses = 0;
 
 // Pins
 #define rpwm 5
@@ -20,6 +20,8 @@ int min_first = 58;
 int max_target = 120;
 int min_target = 118;
 
+bool motorState = false;
+
 bool lastPos1 = false;
 bool lastPos2 = false;
 
@@ -33,7 +35,13 @@ uint16_t au16data[1] = {0};
 Modbus slave(5, Serial, en);
 
 void pulseCounter(){
-  pulses++;
+  if (motorState == true){
+    pulses++;
+  } 
+  else {
+    pulses--;
+  }
+
 }
 
 void slider(int pulse, int max, int min){
@@ -57,7 +65,7 @@ void updateGriper(){
       servoState1 = !servoState1;
 
       if (servoState1){
-        srv1.write(120);
+        srv1.write(110);
       } else {
         srv1.write(0);
       }
@@ -72,9 +80,13 @@ void updateGriper(){
       servoState2 = !servoState2;
 
       if (servoState2){
+        motorState = true;
+        interrupts();
         slider(pulses, max_target, min_target);
         srv2.write(0);
       } else {
+        motorState = false;
+        interrupts();
         srv2.write(90);
         slider(pulses, max_first, min_first);
       }
@@ -114,7 +126,8 @@ void loop() {
   // put your main code here, to run repeatedly:
   slave.poll(au16data, 1);
 
-  interrupts();
   updateGriper();
+  Serial.print("pulse: ");
+  Serial.println(pulses);
 
 }
