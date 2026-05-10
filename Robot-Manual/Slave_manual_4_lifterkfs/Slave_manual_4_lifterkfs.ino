@@ -2,13 +2,13 @@
 #include <ModbusRtu.h>
 
 #define AS5600 0x36
-#define rpwm 6
-#define lpwm 5
+#define rpwm 5
+#define lpwm 6
 #define TXEN 4
 
 Modbus slave(4, Serial, TXEN);
 modbus_t telegram;
-int16_t data[1] = {0};
+uint16_t data[1] = {0};
 
 // Variable yang digunakan
 float set_angle;
@@ -18,8 +18,8 @@ float full_angle = 0.0;
 bool first_condition = true;
 float final_angle = 0;
 int com = 0;
-int max_val = 60;
-int min_val = 58;
+int max_val = -250;
+int min_val = -260;
 
 
 void setup() {
@@ -33,7 +33,7 @@ void setup() {
   Serial.begin(115200);
 
   Wire.begin();
-  Wire.setClock(400000);
+  // Wire.setClock(400000);
 
   slave.start();
 
@@ -43,26 +43,26 @@ void setup() {
 
 void loop() {
   // put your main code here, to run repeatedly:
-  slave.poll();
+  slave.poll(data, 1);
   com = (int16_t)data[0];
 
   final_angle = ASread();
   Serial.print("Angle: ");
   Serial.println(final_angle);
 
-  lifter(0, (min_val + 300), (max_val + 300));
-  lifter(1, (min_val + 120), (max_val + 120));
-  lifter(2, min_val, max_val);
+  lifter(2, (max_val + 300), (min_val + 300));
+  lifter(1, (max_val + 120), (min_val + 120));
+  lifter(0, max_val, min_val);
 }
   
 void lifter(int id, float max, float min){
   if (com == id){
     if (final_angle < min){
+      analogWrite(rpwm, 0);
+      analogWrite(lpwm, 120);
+    } else if (final_angle > max){
       analogWrite(rpwm, 50);
       analogWrite(lpwm, 0);
-    } else if (final_angle > max){
-      analogWrite(rpwm, 0);
-      analogWrite(lpwm, 50);
     } else {
       analogWrite(rpwm, 0);
       analogWrite(lpwm, 0);
