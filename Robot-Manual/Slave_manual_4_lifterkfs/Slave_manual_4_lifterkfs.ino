@@ -17,10 +17,18 @@ int rotation = 0;
 float full_angle = 0.0;
 bool first_condition = true;
 float final_angle = 0;
-int com = 0;
-int max_val = -250;
-int min_val = -260;
 
+int com = 0;
+
+float kp = 2.0;
+float ki = 0.0;
+float kd = 0.2;
+
+float error = 0;
+float last_error = 0;
+float integral = 0;
+float derivative = 0;
+float target = -250;
 
 void setup() {
   // put your setup code here, to run once:
@@ -50,22 +58,41 @@ void loop() {
   Serial.print("Angle: ");
   Serial.println(final_angle);
 
-  lifter(2, (max_val + 300), (min_val + 300));
-  lifter(1, (max_val + 120), (min_val + 120));
-  lifter(0, max_val, min_val);
+  lifter(2, (target + 300));
+  lifter(1, (target + 120));
+  lifter(0, target);
 }
   
-void lifter(int id, float max, float min){
+void lifter(int id, float target){
   if (com == id){
-    if (final_angle < min){
+
+    error = target - final_angle;
+    integral += error;
+    integral = constrain(integral, -100, 100);
+    derivative = error - last_error;
+
+    float output = kp*error + ki*integral + kd*derivative;
+
+    last_error = error;
+
+    output = constrain(output, -255, 255);
+
+    if (abs(error) < 2){
+      integral = 0;
       analogWrite(rpwm, 0);
-      analogWrite(lpwm, 120);
-    } else if (final_angle > max){
-      analogWrite(rpwm, 50);
+      analogWrite(lpwm, 0);
+    } else if (output > 0){
+      // if (abs(output) < 50){
+      //   output = 50;
+      // }
+      analogWrite(rpwm, output);
       analogWrite(lpwm, 0);
     } else {
+      // if (abs(output) < 50){
+      //   output = 50;
+      // }
       analogWrite(rpwm, 0);
-      analogWrite(lpwm, 0);
+      analogWrite(lpwm, abs(output));
     }
   }    
 }
