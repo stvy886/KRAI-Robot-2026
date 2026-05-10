@@ -15,10 +15,17 @@ volatile long pulses = 0;
 #define en 4 
 
 int pos = 0;
-int max_first = 60;
-int min_first = 58;
-int max_target = 120;
-int min_target = 118;
+
+int start = 0;
+int target = 60;
+float kp = 1.5;
+float ki = 0.0;
+float kd = 0.2;
+
+int error = 0;
+int last_error = 0;
+int derivative = 0;
+int integral = 0;
 
 bool motorState = false;
 
@@ -44,16 +51,27 @@ void pulseCounter(){
 
 }
 
-void slider(int pulse, int max, int min){
-  if (pulse > max){
-    analogWrite(rpwm, 50);
-    analogWrite(lpwm, 0);
-  } else if (pulse < min){
+void slider(int pulse, int target){
+  error = target - pulse;
+  integral += error;
+  integral = constrain(integral, -255, 255);
+  derivative = error - last_error;
+
+  float output = kp*error + ki*integral + kd*derivative;
+  last_error = error;
+
+  output = constrain(output, -255, 255); 
+
+  if (abs(error) < 2){
+    integral = 0;
     analogWrite(rpwm, 0);
-    analogWrite(lpwm, 50);
+    analogWrite(lpwm, 0);
+  } else if (output > 0){
+    analogWrite(rpwm, output);
+    analogWrite(lpwm, 0);
   } else {
     analogWrite(rpwm, 0);
-    analogWrite(lpwm, 0);
+    analogWrite(lpwm, abs(output));
   }
 }
 
@@ -82,13 +100,13 @@ void updateGriper(){
       if (servoState2){
         motorState = true;
         interrupts();
-        slider(pulses, max_target, min_target);
+        slider(pulses, target);
         srv2.write(0);
       } else {
         motorState = false;
         interrupts();
         srv2.write(90);
-        slider(pulses, max_first, min_first);
+        slider(pulses, start);
       }
     }
     lastPos2 = true;
